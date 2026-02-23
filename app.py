@@ -59,6 +59,7 @@ def reset_prospect():
 st.set_page_config(
     page_title="Prospecting Icebreaker",
     page_icon=":envelope:",
+    layout="wide",
     menu_items={},
 )
 
@@ -81,126 +82,163 @@ if st.session_state.error_message:
 # ==============================================================================
 
 if st.session_state.phase == 1:
-    st.header("Step 1: Your Company")
-    st.markdown("Tell us about your company so we can research your products and services.")
+    left, right = st.columns([1, 1], gap="large")
 
-    company_name = st.text_input("Company Name *", value=st.session_state.company_name)
-    company_domain = st.text_input("Company Domain *", value=st.session_state.company_domain, placeholder="example.com")
-    supplemental_info = st.text_area(
-        "Supplemental Information (optional)",
-        value=st.session_state.supplemental_info,
-        placeholder="Any additional context about your company, products, or services...",
-    )
+    with left:
+        st.header("Step 1: Your Company")
+        st.markdown(
+            """
+            Before crafting personalized outreach, we need to understand what you sell.
 
-    if st.button("Research Company", type="primary", use_container_width=True):
-        if not company_name.strip() or not company_domain.strip():
-            st.error("Company Name and Company Domain are required.")
-        else:
-            st.session_state.company_name = company_name.strip()
-            st.session_state.company_domain = company_domain.strip()
-            st.session_state.supplemental_info = supplemental_info.strip()
+            Enter your company name and website domain and we'll research your products,
+            services, and value propositions — so every email we generate is grounded in
+            what makes your offering compelling.
 
-            inputs = {
-                "company_name": st.session_state.company_name,
-                "company_domain": st.session_state.company_domain,
-                "supplemental_info": st.session_state.supplemental_info,
-            }
+            You can also add supplemental context if there's anything the website might
+            not capture: a new product launch, a specific use case you're leading with,
+            or a target vertical you're focused on.
+            """
+        )
 
-            try:
-                with st.spinner("Researching your company... This may take a few minutes."):
-                    result = run_crew_and_wait(CREW1_URL, CREW1_TOKEN, inputs)
-                st.session_state.recon_report = result
-                st.session_state.phase = 2
-                st.rerun()
-            except TimeoutError:
-                st.session_state.error_message = "Company research timed out. Please try again."
-                st.rerun()
-            except Exception as e:
-                st.session_state.error_message = f"Error during company research: {e}"
-                st.rerun()
+    with right:
+        st.header("Company Details")
+
+        company_name = st.text_input("Company Name *", value=st.session_state.company_name)
+        company_domain = st.text_input("Company Domain *", value=st.session_state.company_domain, placeholder="example.com")
+        supplemental_info = st.text_area(
+            "Supplemental Information (optional)",
+            value=st.session_state.supplemental_info,
+            placeholder="Any additional context about your company, products, or services...",
+        )
+
+        if st.button("Research Company", type="primary", use_container_width=True):
+            if not company_name.strip() or not company_domain.strip():
+                st.error("Company Name and Company Domain are required.")
+            else:
+                st.session_state.company_name = company_name.strip()
+                st.session_state.company_domain = company_domain.strip()
+                st.session_state.supplemental_info = supplemental_info.strip()
+
+                inputs = {
+                    "company_name": st.session_state.company_name,
+                    "company_domain": st.session_state.company_domain,
+                    "supplemental_info": st.session_state.supplemental_info,
+                }
+
+                try:
+                    with st.spinner("Researching your company... This may take a few minutes."):
+                        result = run_crew_and_wait(CREW1_URL, CREW1_TOKEN, inputs)
+                    st.session_state.recon_report = result
+                    st.session_state.phase = 2
+                    st.rerun()
+                except TimeoutError:
+                    st.session_state.error_message = "Company research timed out. Please try again."
+                    st.rerun()
+                except Exception as e:
+                    st.session_state.error_message = f"Error during company research: {e}"
+                    st.rerun()
 
 # ==============================================================================
 # Phase 2: Prospect Information
 # ==============================================================================
 
 elif st.session_state.phase == 2:
-    st.header("Step 2: Prospect Information")
+    left, right = st.columns([1, 1], gap="large")
 
-    with st.expander("Company Research Summary", expanded=False):
-        st.markdown(f"**Company:** {st.session_state.company_name}")
-        st.markdown(f"**Domain:** {st.session_state.company_domain}")
-        if st.session_state.supplemental_info:
-            st.markdown(f"**Notes:** {st.session_state.supplemental_info}")
-        st.divider()
-        st.markdown(st.session_state.recon_report)
+    with left:
+        st.header("Company Research")
+        st.caption(f"{st.session_state.company_name} · {st.session_state.company_domain}")
+        edited = st.text_area(
+            "Edit as needed before generating emails.",
+            value=st.session_state.recon_report,
+            height=500,
+            label_visibility="visible",
+            key="recon_report_editor",
+        )
+        if edited != st.session_state.recon_report:
+            st.session_state.recon_report = edited
 
-    st.markdown("Provide details about who you'd like to prospect to.")
+    with right:
+        st.header("Step 2: Prospect Information")
+        st.markdown("Provide details about who you'd like to prospect to.")
 
-    prospect_company = st.text_input("Prospect Company (optional)", value=st.session_state.prospect_company)
-    prospect_name = st.text_input("Prospect Individual Name (optional)", value=st.session_state.prospect_name)
-    supplemental_prospect_info = st.text_area(
-        "Supplemental Prospect Information (optional)",
-        value=st.session_state.supplemental_prospect_info,
-        placeholder="Specifics about what you want to sell, things you know about the prospect, talking points...",
-        height=150,
-    )
+        prospect_company = st.text_input("Prospect Company (optional)", value=st.session_state.prospect_company)
+        prospect_name = st.text_input("Prospect Individual Name (optional)", value=st.session_state.prospect_name)
+        supplemental_prospect_info = st.text_area(
+            "Supplemental Prospect Information (optional)",
+            value=st.session_state.supplemental_prospect_info,
+            placeholder="Specifics about what you want to sell, things you know about the prospect, talking points...",
+            height=150,
+        )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Start Over", use_container_width=True):
-            reset_all()
-            st.rerun()
-    with col2:
-        if st.button("Generate Icebreaker", type="primary", use_container_width=True):
-            st.session_state.prospect_company = prospect_company.strip()
-            st.session_state.prospect_name = prospect_name.strip()
-            st.session_state.supplemental_prospect_info = supplemental_prospect_info.strip()
-
-            inputs = {
-                "company_name": st.session_state.company_name,
-                "company_domain": st.session_state.company_domain,
-                "supplemental_info": st.session_state.supplemental_info,
-                "recon_report": st.session_state.recon_report,
-                "prospect_company": st.session_state.prospect_company,
-                "prospect_name": st.session_state.prospect_name,
-                "supplemental_prospect_info": st.session_state.supplemental_prospect_info,
-            }
-
-            try:
-                with st.spinner("Generating icebreaker email... This may take a few minutes."):
-                    result = run_crew_and_wait(CREW2_URL, CREW2_TOKEN, inputs)
-                st.session_state.icebreaker_email = result
-                st.session_state.phase = 3
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Start Over", use_container_width=True):
+                reset_all()
                 st.rerun()
-            except TimeoutError:
-                st.session_state.error_message = "Icebreaker generation timed out. Please try again."
-                st.rerun()
-            except Exception as e:
-                st.session_state.error_message = f"Error generating icebreaker: {e}"
-                st.rerun()
+        with col2:
+            if st.button("Generate Icebreaker", type="primary", use_container_width=True):
+                st.session_state.prospect_company = prospect_company.strip()
+                st.session_state.prospect_name = prospect_name.strip()
+                st.session_state.supplemental_prospect_info = supplemental_prospect_info.strip()
+
+                inputs = {
+                    "company_name": st.session_state.company_name,
+                    "company_domain": st.session_state.company_domain,
+                    "supplemental_info": st.session_state.supplemental_info,
+                    "recon_report": st.session_state.recon_report,
+                    "prospect_company": st.session_state.prospect_company,
+                    "prospect_name": st.session_state.prospect_name,
+                    "supplemental_prospect_info": st.session_state.supplemental_prospect_info,
+                }
+
+                try:
+                    with st.spinner("Generating icebreaker email... This may take a few minutes."):
+                        result = run_crew_and_wait(CREW2_URL, CREW2_TOKEN, inputs)
+                    st.session_state.icebreaker_email = result
+                    st.session_state.phase = 3
+                    st.rerun()
+                except TimeoutError:
+                    st.session_state.error_message = "Icebreaker generation timed out. Please try again."
+                    st.rerun()
+                except Exception as e:
+                    st.session_state.error_message = f"Error generating icebreaker: {e}"
+                    st.rerun()
 
 # ==============================================================================
 # Phase 3: Results
 # ==============================================================================
 
 elif st.session_state.phase == 3:
-    st.header("Your Icebreaker Email")
+    left, right = st.columns([1, 1], gap="large")
 
-    with st.expander("Context", expanded=False):
-        st.markdown(f"**Your Company:** {st.session_state.company_name}")
-        if st.session_state.prospect_name:
-            st.markdown(f"**Prospect:** {st.session_state.prospect_name}")
-        if st.session_state.prospect_company:
-            st.markdown(f"**Prospect Company:** {st.session_state.prospect_company}")
+    with left:
+        st.header("Company Research")
+        st.caption(f"{st.session_state.company_name} · {st.session_state.company_domain}")
+        edited = st.text_area(
+            "Edit as needed before generating more emails.",
+            value=st.session_state.recon_report,
+            height=500,
+            label_visibility="visible",
+            key="recon_report_editor",
+        )
+        if edited != st.session_state.recon_report:
+            st.session_state.recon_report = edited
 
-    st.markdown(st.session_state.icebreaker_email)
+    with right:
+        st.header("Your Icebreaker Email")
+        if st.session_state.prospect_name or st.session_state.prospect_company:
+            parts = [p for p in [st.session_state.prospect_name, st.session_state.prospect_company] if p]
+            st.caption(" · ".join(parts))
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Prospect Another Entity", use_container_width=True):
-            reset_prospect()
-            st.rerun()
-    with col2:
-        if st.button("Start Over", use_container_width=True):
-            reset_all()
-            st.rerun()
+        st.markdown(st.session_state.icebreaker_email)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Prospect Another Entity", use_container_width=True):
+                reset_prospect()
+                st.rerun()
+        with col2:
+            if st.button("Start Over", use_container_width=True):
+                reset_all()
+                st.rerun()
